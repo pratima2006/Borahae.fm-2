@@ -1,136 +1,125 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, Redirect, Route, Router as WouterRouter, Switch } from 'wouter';
+import { ArrowRight, Check, ChevronDown, Clock3, ExternalLink, Flame, Heart, Instagram, Link2, Loader2, Play, Plus, Search, Sparkles, Star, Target, Trophy, Users, Youtube } from 'lucide-react';
+import { AppShell } from '@/components/AppShell';
+import { BrandMark } from '@/components/BrandMark';
+import { EmptyState } from '@/components/EmptyState';
+import { PageHeader } from '@/components/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import NotFound from '@/pages/not-found';
+import type { FormEvent, ReactNode } from 'react';
 
-export default function App() {
-  const [showModal, setShowModal] = useState<string | null>(null)
-  const [isSignedIn, setIsSignedIn] = useState(false)
+type Video = { id: string; youtubeId: string; title: string; thumbnailUrl: string; durationSeconds: number; viewCount: number; channelTitle: string; isNew?: boolean; };
+type HistoryEntry = { id: string; videoId: string; title: string; thumbnailUrl: string; member: string; watchedAt: string; streamCount: number; };
+type LeaderboardEntry = { member: string; streams: number; };
 
-  return (
-    <div className="min-h-screen bg-[#fdfcff] relative overflow-hidden">
-      {/* Background Gradients */}
-      <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-pink-200/30 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/4" />
+const MOCK_VIDEOS: Video[] = [
+  { id: '1', youtubeId: 'gdZLi9oWNZg', title: 'BTS (방탄소년단) - Dynamite Official MV', thumbnailUrl: 'https://i.ytimg.com/vi/gdZLi9oWNZg/hqdefault.jpg', durationSeconds: 223, viewCount: 1800000000, channelTitle: 'BANGTANTV', isNew: true },
+  { id: '2', youtubeId: 'WMweEpGlu_U', title: 'BTS (방탄소년단) - Butter Official MV', thumbnailUrl: 'https://i.ytimg.com/vi/WMweEpGlu_U/hqdefault.jpg', durationSeconds: 187, viewCount: 900000000, channelTitle: 'BANGTANTV' },
+  { id: '3', youtubeId: 'CuklIb9d3fI', title: 'BTS (방탄소년단) - Permission to Dance', thumbnailUrl: 'https://i.ytimg.com/vi/CuklIb9d3fI/hqdefault.jpg', durationSeconds: 310, viewCount: 650000000, channelTitle: 'BANGTANTV' },
+  { id: '4', youtubeId: 'kTlv5_Bs8aw', title: 'BTS - Blood Sweat & Tears MV', thumbnailUrl: 'https://i.ytimg.com/vi/hmE2fL5qM8k/hqdefault.jpg', durationSeconds: 363, viewCount: 950000000, channelTitle: 'BANGTANTV' },
+  { id: '5', youtubeId: '7C2z4GqqS5E', title: 'BTS - Fake Love Official MV', thumbnailUrl: 'https://i.ytimg.com/vi/7C2z4GqqS5E/hqdefault.jpg', durationSeconds: 270, viewCount: 1200000000, channelTitle: 'BANGTANTV', isNew: true },
+  { id: '6', youtubeId: 'MBdVXkSdhwU', title: 'BTS - DNA Official MV', thumbnailUrl: 'https://i.ytimg.com/vi/MBdVXkSdhwU/hqdefault.jpg', durationSeconds: 250, viewCount: 1500000000, channelTitle: 'BANGTANTV' },
+];
 
-      {/* Navbar - WORKING */}
-      <nav className="relative z-10 flex justify-between items-center px-6 md:px-12 py-6 max-w-[1400px] mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-borahae-600 rounded-xl flex items-center justify-center text-white font-display text-xl font-bold shadow-lg shadow-purple-300">b</div>
-          <span className="font-semibold tracking-tight">borahae.fm</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => setShowModal(isSignedIn? 'signout' : 'signin')} className="text-sm font-medium text-zinc-600 hover:text-black">
-            {isSignedIn? 'Dashboard' : 'Sign in'}
-          </button>
-          <button onClick={() => setShowModal('join')} className="bg-borahae-600 text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-lg shadow-purple-200 hover:bg-borahae-900 transition-all">
-            Join the light
-          </button>
-        </div>
-      </nav>
+const MOCK_HISTORY: HistoryEntry[] = [
+  { id: 'h1', videoId: '1', title: 'BTS (방탄소년단) - Dynamite Official MV', thumbnailUrl: 'https://i.ytimg.com/vi/gdZLi9oWNZg/hqdefault.jpg', member: 'OT7', watchedAt: new Date().toISOString(), streamCount: 2 },
+  { id: 'h2', videoId: '2', title: 'BTS (방탄소년단) - Butter Official MV', thumbnailUrl: 'https://i.ytimg.com/vi/WMweEpGlu_U/hqdefault.jpg', member: 'Jungkook', watchedAt: new Date(Date.now()-86400000).toISOString(), streamCount: 1 },
+];
 
-      {/* Hero Section - Exact replica of your pic */}
-      <main className="relative z-10 max-w-[1400px] mx-auto px-6 md:px-12 pt-10 md:pt-16 grid md:grid-cols-2 gap-12 items-center">
-        <div>
-          <div className="inline-flex items-center gap-2 border border-zinc-200 rounded-full px-3 py-1 text-[10px] font-mono tracking-widest uppercase text-zinc-500 bg-white">
-            <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" /> FOR EVERY COMEBACK, TOGETHER
-          </div>
-          <h1 className="font-display text-[56px] md:text-[80px] leading-[0.9] mt-6 tracking-tight">
-            <span className="text-zinc-900">Keep the light.</span><br />
-            <span className="text-borahae-600 italic">Stream with<br />heart.</span>
-          </h1>
-          <p className="mt-6 text-zinc-500 max-w-[440px] leading-relaxed text-[15px]">
-            borahae.fm is your lovingly kept ARMY scrapbook — a place to discover missions, make every stream count, and watch the purple light grow.
-          </p>
-          <div className="mt-8 flex gap-3">
-            <button onClick={() => setShowModal('join')} className="bg-borahae-600 text-white px-6 py-3.5 rounded-full text-sm font-semibold flex items-center gap-2 hover:bg-black transition-colors">
-              Start your scrapbook <span>→</span>
-            </button>
-            <button onClick={() => setShowModal('how')} className="bg-white border border-zinc-200 px-6 py-3.5 rounded-full text-sm font-semibold hover:border-zinc-900 transition-colors">
-              See how it works
-            </button>
-          </div>
-          <div className="mt-10 flex items-center gap-3">
-            <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full bg-purple-100 border-2 border-white flex items-center justify-center text-[10px] font-mono text-purple-700">A</div>
-              <div className="w-8 h-8 rounded-full bg-pink-100 border-2 border-white flex items-center justify-center text-[10px] font-mono text-pink-700">J</div>
-              <div className="w-8 h-8 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-[10px] font-mono text-indigo-700">M</div>
-              <div className="w-8 h-8 rounded-full bg-violet-100 border-2 border-white flex items-center justify-center text-[10px] font-mono text-violet-700">S</div>
-            </div>
-            <p className="text-xs font-mono text-zinc-500"><span className="font-bold text-zinc-900">12,480 ARMY</span> keeping watch together</p>
-          </div>
-        </div>
+const MOCK_LEADERBOARD: LeaderboardEntry[] = [
+  { member: 'ARMY', streams: 12480 }, { member: 'Jin', streams: 8920 }, { member: 'Jungkook', streams: 7650 }, { member: 'OT7', streams: 6200 }, { member: 'V', streams: 5430 }
+];
 
-        {/* Right Card - WORKING BUTTON */}
-        <div className="relative md:ml-12">
-          <div className="bg-white p-3 rounded-[32px] shadow-2xl shadow-purple-200/50 rotate-[2deg] border border-zinc-100">
-            <div className="bg-[#2a1650] rounded-[24px] p-8 md:p-10 text-white relative overflow-hidden min-h-[480px] flex flex-col justify-between">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/40 blur-[50px] rounded-full" />
-              <div className="relative">
-                <p className="font-mono text-[9px] tracking-[0.2em] text-purple-300/70">MISSION 001 / BANGTANTV</p>
-                <h2 className="font-display text-5xl leading-[0.9] mt-8">The purple<br />hour.</h2>
-                <p className="font-mono text-[11px] text-purple-200/60 mt-4 max-w-[240px] leading-relaxed">A little place to leave your mark on the streams that mean something.</p>
-              </div>
-              <div className="relative flex justify-between items-end">
-                <button onClick={() => setShowModal('watch')} className="flex items-center gap-3 group">
-                  <div className="w-10 h-10 bg-pink-300 rounded-full flex items-center justify-center text-borahae-900 group-hover:scale-110 transition-transform">▶</div>
-                  <span className="font-mono text-xs">Watch together</span>
-                </button>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md px-6 py-3 flex justify-between items-center">
-                <p className="font-mono text-[9px] tracking-widest text-white/50">YOUR STREAM JOURNAL</p>
-                <p className="font-mono text-[10px] text-pink-300">♥ borahae</p>
-              </div>
-            </div>
-          </div>
-          <div className="absolute -bottom-4 -left-6 bg-pink-300 text-borahae-900 px-4 py-2 rounded-full text-xs font-bold font-mono rotate-[-8deg] shadow-lg">★ love notes, not numbers</div>
-        </div>
-      </main>
+const basePath = import.meta.env.BASE_URL?.replace(/\/$/, '') || '';
+function formatDuration(s=0){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+function formatCount(v=0){return new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(v);}
+function formatDate(v?:string){return v?new Intl.DateTimeFormat('en',{month:'short',day:'numeric',year:'numeric'}).format(new Date(v)):'recently';}
+function memberLabel(m?:string){return m||'OT7';}
+function AppLink({children,href,className='',testId}:{children:ReactNode;href:string;className?:string;testId:string}){return <Link href={href} className={className} data-testid={testId}>{children}</Link>;}
 
-      {/* Steps Section */}
-      <section className="mt-24 grid md:grid-cols-3 border-t border-zinc-100 bg-white">
-        {[
-          { n: "01", t: "Find your mission", d: "Pick a MV or comeback goal." },
-          { n: "02", t: "Watch with intention", d: "Log your streams mindfully." },
-          { n: "03", t: "Leave your mark", d: "Grow the purple light together." }
-        ].map(s => (
-          <div key={s.n} className="p-12 border-r border-zinc-100 last:border-0">
-            <p className="font-mono text-[10px] text-borahae-600">{s.n}</p>
-            <h3 className="font-display text-2xl mt-4">{s.t}</h3>
-            <p className="text-sm text-zinc-500 mt-2">{s.d}</p>
-          </div>
-        ))}
-      </section>
-
-      {/* MODALS - ALL BUTTONS WORK NOW */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setShowModal(null)}>
-          <div className="bg-white rounded-[24px] p-8 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            {showModal === 'join' && <>
-              <h3 className="font-display text-3xl">Join the light 💜</h3>
-              <p className="text-sm text-zinc-500 mt-2">Create your scrapbook. It's free forever.</p>
-              <input placeholder="Email" className="mt-6 w-full border border-zinc-200 rounded-full px-4 py-3 text-sm outline-none focus:border-borahae-600" />
-              <button onClick={() => { setIsSignedIn(true); setShowModal(null); }} className="mt-3 w-full bg-borahae-600 text-white rounded-full py-3 text-sm font-semibold">Continue</button>
-            </>}
-            {showModal === 'signin' && <>
-              <h3 className="font-display text-3xl">Welcome back</h3>
-              <button onClick={() => { setIsSignedIn(true); setShowModal(null); }} className="mt-6 w-full bg-black text-white rounded-full py-3 text-sm">Sign in as Demo ARMY</button>
-            </>}
-            {showModal === 'how' && <>
-              <h3 className="font-display text-2xl">How it works?</h3>
-              <p className="text-sm text-zinc-600 mt-3 leading-relaxed">1. Mission choose karo, 2. Stream log karo, 3. Purple light badao. No numbers race, only love notes.</p>
-              <button onClick={() => setShowModal(null)} className="mt-6 w-full border rounded-full py-3 text-sm">Got it</button>
-            </>}
-            {showModal === 'watch' && <>
-              <h3 className="font-display text-2xl">The purple hour live</h3>
-              <div className="mt-4 aspect-video bg-borahae-900 rounded-xl flex items-center justify-center text-white">▶ Video Player Mock</div>
-              <button onClick={() => setShowModal(null)} className="mt-4 w-full bg-borahae-600 text-white rounded-full py-3 text-sm">Close</button>
-            </>}
-            {showModal === 'signout' && <>
-              <h3 className="font-display text-2xl">Dashboard</h3>
-              <p className="text-sm text-zinc-500 mt-2">You are signed in as ARMY.</p>
-              <button onClick={() => { setIsSignedIn(false); setShowModal(null); }} className="mt-6 w-full bg-zinc-100 rounded-full py-3 text-sm">Sign out</button>
-            </>}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+function Landing(){
+  return <div className="noise min-h-[100dvh] overflow-hidden bg-background">
+    <header className="mx-auto flex max-w-7xl items-center px-5 py-6 sm:px-8"><BrandMark /></header>
+    <section className="relative mx-auto max-w-7xl px-5 pb-20 pt-14 sm:px-8 sm:pb-28 sm:pt-20"><div className="relative grid items-center gap-14 lg:grid-cols-[1.03fr_.97fr]"><div className="animate-rise"><p className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-secondary/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[.15em] text-primary"><Sparkles className="h-3 w-3" />For every comeback, together</p><h1 className="max-w-3xl font-display text-6xl leading-[.95] tracking-[-.055em] text-foreground sm:text-8xl">Keep the light.<br /><span className="text-primary">Stream with heart.</span></h1><p className="mt-7 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">borahae.fm is your lovingly kept ARMY scrapbook — a place to discover missions, make every stream count, and watch the purple light grow.</p><div className="mt-9 flex flex-wrap gap-3"><AppLink href="/home" className="group inline-flex items-center gap-3 rounded-2xl bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground transition hover:-translate-y-1" testId="link-hero-start">Open your scrapbook <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></AppLink><a href="#how-it-works" className="inline-flex items-center rounded-2xl border border-border bg-card px-5 py-3.5 text-sm font-bold text-foreground transition hover:bg-secondary" data-testid="link-hero-learn">See how it works</a></div></div><div className="animate-rise relative [animation-delay:120ms]"><div className="paper-grid relative mx-auto max-w-[520px] rotate-2 rounded-[2.25rem] border border-primary/15 bg-[#fcf9ff] p-3 shadow-[0_30px_70px_hsl(272_42%_28%/.16)] sm:p-5"><div className="overflow-hidden rounded-[1.7rem] bg-[#2e1d50]"><div className="relative aspect-[1.1] overflow-hidden bg-[radial-gradient(circle_at_65%_24%,#bc7fdc,transparent_22%),linear-gradient(135deg,#301b58,#56338e_56%,#1d1734)] p-7 text-white sm:p-10"><p className="font-mono text-[10px] uppercase tracking-[.22em] text-white/60">mission 001 / bangtantv</p><h2 className="mt-14 max-w-xs font-display text-5xl leading-[.9]">The purple<br />hour.</h2><p className="mt-5 max-w-[220px] text-xs leading-5 text-white/65">A little place to leave your mark on the streams that mean something.</p><div className="absolute bottom-7 left-7 flex items-center gap-2 text-xs font-bold sm:bottom-10 sm:left-10"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-foreground"><Play className="h-3.5 w-3.5 fill-current" /></span>Watch together</div></div><div className="flex items-center justify-between bg-[#22163c] px-5 py-4 text-white"><span className="font-mono text-[9px] uppercase tracking-[.15em] text-white/45">your stream journal</span><span className="flex items-center gap-1.5 text-xs font-bold text-accent"><Heart className="h-3.5 w-3.5 fill-current" /> borahae</span></div></div></div><div className="absolute -bottom-6 -left-4 flex rotate-[-8deg] items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-xs font-extrabold text-foreground shadow-lg sm:-left-8"><Star className="h-3.5 w-3.5 fill-current" /> love notes, not numbers</div></div></div></section>
+    <section id="how-it-works" className="border-y border-border/70 bg-card/60"><div className="mx-auto grid max-w-7xl gap-0 px-5 sm:px-8 md:grid-cols-3">{[['01','Find your mission','Start with hand-picked BANGTANTV moments'],['02','Watch with intention','The in-app player keeps your watch flow in one place'],['03','Leave your mark','One completed stream, recorded. Your progress grows together.']].map(([num,title,body],i) => <div className={`py-12 md:px-8 md:py-16 ${i>0?'border-t border-border md:border-l md:border-t-0':''}`} key={num}><span className="font-mono text-xs text-primary">{num}</span><h3 className="mt-5 font-display text-3xl">{title}</h3><p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">{body}</p></div>)}</div></section>
+    <footer className="border-t border-border px-5 py-8 sm:px-8"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-4 text-xs text-muted-foreground sm:flex-row sm:items-center"><BrandMark compact /><span>Made with purple light for ARMY, everywhere.</span></div></footer>
+  </div>;
 }
+
+function VideoThumb({video,className=''}:{video:Pick<Video,'thumbnailUrl'|'title'>;className?:string}){return <div className={`relative overflow-hidden bg-secondary ${className}`}><img src={video.thumbnailUrl} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /><div className="absolute inset-0 bg-gradient-to-t from-foreground/55 to-transparent opacity-70" /><div className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-primary"><Play className="h-3.5 w-3.5 fill-current" /></div></div>;}
+
+function YouTubePlayer({video,onEnded}:{video:Video;onEnded:()=>void}){
+  const [ready,setReady]=useState(false); const recorded=useRef(false); const onEndedRef=useRef(onEnded); onEndedRef.current=onEnded;
+  const playerRef=useRef<{destroy:()=>void}|null>(null); const hostRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    setReady(false); recorded.current=false; playerRef.current?.destroy(); playerRef.current=null;
+    const w=window as any;
+    const createPlayer=()=>{ if(!hostRef.current||!w.YT) return; playerRef.current=new w.YT.Player(hostRef.current,{videoId:video.youtubeId,playerVars:{enablejsapi:1,rel:0,modestbranding:1},events:{onReady:()=>setReady(true),onStateChange:(e:{data:number})=>{if(w.YT&&e.data===w.YT.PlayerState.ENDED&&!recorded.current){recorded.current=true;onEndedRef.current();}}},});};
+    if(w.YT) createPlayer(); else { const prev=w.onYouTubeIframeAPIReady; w.onYouTubeIframeAPIReady=()=>{prev?.();createPlayer();}; if(!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')){const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.body.appendChild(s);}}
+    return()=>{playerRef.current?.destroy(); playerRef.current=null;};
+  },[video.youtubeId]);
+  const handleEnded=()=>{if(!recorded.current){recorded.current=true;onEndedRef.current();}};
+  return <div className="relative aspect-video overflow-hidden rounded-2xl bg-[#211333]"><div ref={hostRef} className={`h-full w-full transition-opacity duration-300 ${ready?'opacity-100':'opacity-0'}`} title={video.title} /><div className={`absolute inset-0 flex items-center justify-center bg-[#211333] transition-opacity ${ready?'pointer-events-none opacity-0':'opacity-100'}`}><Loader2 className="h-6 w-6 animate-spin text-accent" /></div><button className="absolute bottom-3 right-3 rounded-lg bg-black/40 px-2 py-1 text-[10px] text-white/70" onClick={handleEnded} data-testid={`button-record-stream-${video.id}`}>Mark complete</button></div>;
+}
+
+function MissionCard({video,onPlay,openYoutube=false}:{video:Video;onPlay:(v:Video)=>void;openYoutube?:boolean}){
+  return <article className="group overflow-hidden rounded-3xl border border-border bg-card scrap-shadow transition duration-300 hover:-translate-y-1"><button className="block w-full text-left" onClick={()=>onPlay(video)}><VideoThumb video={video} className="aspect-video" /></button><div className="p-5"><div className="flex items-center justify-between gap-3"><span className={`font-mono text-[10px] uppercase tracking-[.14em] ${video.isNew?'font-bold text-accent-foreground':'text-primary'}`}>{video.isNew?'NEW · added within 3 days':'starter mission'}</span><span className="text-[10px] text-muted-foreground">{formatDuration(video.durationSeconds)}</span></div><h3 className="mt-2 line-clamp-2 text-sm font-bold leading-5">{video.title}</h3><p className="mt-2 text-xs text-muted-foreground">{video.channelTitle} · {formatCount(video.viewCount)} views</p>{openYoutube&&<a href={`https://www.youtube.com/watch?v=${video.youtubeId}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-xs font-extrabold text-primary hover:underline">Open YouTube <ExternalLink className="h-3 w-3" /></a>}</div></article>;
+}
+
+function DashboardPage(){
+  const [history,setHistory]=useState<HistoryEntry[]>(MOCK_HISTORY);
+  const [todayStreams]=useState(3); const dailyGoal=5; const progress=Math.min(100,Math.round((todayStreams/dailyGoal)*100));
+  return <AppShell><div className="animate-rise"><div className="mb-9 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="font-mono text-[10px] uppercase tracking-[.2em] text-primary">Your scrapbook · {formatDate(new Date().toISOString())}</p><h1 className="mt-2 font-display text-5xl leading-none tracking-[-.04em] sm:text-6xl">Welcome back, <span className="text-primary">ARMY</span>.</h1></div><AppLink href="/missions" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground" testId="link-dashboard-missions"><Play className="h-4 w-4 fill-current" /> Continue a mission</AppLink></div><div className="grid gap-5 xl:grid-cols-[1.35fr_.65fr]"><section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(125deg,#311957,#7441a8)] p-7 text-white sm:p-9"><div className="flex items-center justify-between"><span className="rounded-full bg-white/12 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[.15em] text-white/70">Dynamite · today’s goal</span><Flame className="h-5 w-5 text-accent" /></div><div className="mt-8 flex items-end gap-3"><span className="font-display text-7xl leading-none">{todayStreams}</span><span className="mb-2 text-sm text-white/55">/ {dailyGoal} streams</span></div><div className="mt-6 h-2 overflow-hidden rounded-full bg-black/20"><div className="h-full rounded-full bg-accent transition-all duration-700" style={{width:`${progress}%`}} /></div></section><section className="rounded-[2rem] border border-border bg-card p-7 scrap-shadow sm:p-9"><div className="flex items-center justify-between"><p className="font-mono text-[10px] uppercase tracking-[.15em] text-muted-foreground">All-time streams</p><Heart className="h-4 w-4 text-accent-foreground" /></div><p className="mt-8 font-display text-6xl leading-none text-primary">{formatCount(12480+history.length)}</p><p className="mt-3 text-sm text-muted-foreground">Every count is a little love note.</p></section></div><div className="mt-8 grid gap-8 lg:grid-cols-[1.25fr_.75fr]"><section><div className="mb-4 flex items-end justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[.15em] text-primary">Pick up where you left off</p><h2 className="mt-1 font-display text-3xl">Continue watching</h2></div><AppLink href="/history" className="text-xs font-bold text-primary hover:underline" testId="link-dashboard-history">See all history</AppLink></div><div className="space-y-3">{history.slice(0,5).map((e)=><HistoryCard key={e.id} entry={e} compact onDelete={()=>setHistory(h=>h.filter(x=>x.id!==e.id))} />)}</div></section><Leaderboard entries={MOCK_LEADERBOARD} /></div></div></AppShell>;
+}
+
+function HistoryCard({entry,compact=false,onDelete}:{entry:HistoryEntry;compact?:boolean;onDelete?:()=>void}){return <article className={`group flex gap-4 rounded-2xl border border-border bg-card p-3 transition hover:border-primary/30 ${compact?'':'items-center'}`}><div className={`relative shrink-0 overflow-hidden rounded-xl ${compact?'h-16 w-24':'h-20 w-32 sm:h-24 sm:w-40'}`}><img src={entry.thumbnailUrl} alt="" className="h-full w-full object-cover" /><span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">{entry.streamCount}×</span></div><div className="min-w-0 flex-1"><p className="line-clamp-2 text-sm font-bold leading-5">{entry.title}</p><p className="mt-1 text-xs text-muted-foreground">{memberLabel(entry.member)} · {formatDate(entry.watchedAt)}</p></div>{onDelete&&<button onClick={onDelete} className="self-start rounded-lg p-1.5 text-muted-foreground opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100">×</button>}</article>;}
+
+function Leaderboard({entries}:{entries:LeaderboardEntry[]}){return <section className="rounded-3xl border border-border bg-card p-6 scrap-shadow"><div className="flex items-center justify-between"><div><p className="font-mono text-[10px] uppercase tracking-[.15em] text-primary">light circle</p><h2 className="mt-1 font-display text-3xl">Leaderboard</h2></div><Trophy className="h-5 w-5 text-accent-foreground" /></div><div className="mt-5 space-y-2">{entries.slice(0,5).map((item,i)=><div className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition hover:bg-secondary" key={`${item.member}-${i}`}><span className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-extrabold ${i===0?'bg-accent text-foreground':'bg-secondary text-primary'}`}>{i+1}</span><span className="flex-1 text-sm font-bold">{item.member}</span><span className="font-mono text-xs text-muted-foreground">{formatCount(item.streams)}</span></div>)}</div></section>;}
+
+function MissionsPage(){
+  const [videos]=useState<Video[]>(MOCK_VIDEOS); const [selected,setSelected]=useState<Video|null>(null); const selectedRef=useRef<Video|null>(null);
+  const play=(v:Video)=>{selectedRef.current=v;setSelected(v);};
+  return <AppShell><PageHeader eyebrow="starter missions / bangtantv" title="A little mission for today." body="Begin with the moments ARMY has kept close. Watch in the player, then let your completed stream find its place in your journal." />{videos.length?<div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{videos.map((video)=><MissionCard key={video.id} video={video} onPlay={play} />)}</div>:null}{selected&&<div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/65 p-4 backdrop-blur-sm"><div className="w-full max-w-3xl overflow-hidden rounded-3xl bg-card shadow-2xl"><div className="flex items-center justify-between border-b border-border px-5 py-4"><div className="min-w-0"><p className="font-mono text-[10px] uppercase tracking-[.15em] text-primary">now playing</p><h2 className="truncate text-sm font-bold">{selected.title}</h2></div><button onClick={()=>setSelected(null)} className="rounded-xl px-3 py-1 text-sm font-bold text-muted-foreground hover:bg-secondary">Close</button></div><YouTubePlayer video={selected} onEnded={()=>{alert('Stream recorded! 💜'); setSelected(null);}} /><div className="flex items-center justify-between px-5 py-4 text-xs text-muted-foreground"><span>Watch to the end to record your stream.</span><a href={`https://www.youtube.com/watch?v=${selected.youtubeId}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold text-primary">Open YouTube <ExternalLink className="h-3 w-3" /></a></div></div></div>}</AppShell>;
+}
+
+function VideosPage(){
+  const [query,setQuery]=useState(''); const [submitted,setSubmitted]=useState(''); const [url,setUrl]=useState(''); const [videos,setVideos]=useState<Video[]>(MOCK_VIDEOS); const [status,setStatus]=useState<{type:'error'|'success';msg:string}|null>(null);
+  const filtered=useMemo(()=>{ if(!submitted) return []; return videos.filter(v=>v.title.toLowerCase().includes(submitted.toLowerCase()));},[submitted,videos]);
+  const submitSearch=(e:FormEvent)=>{e.preventDefault();setSubmitted(query.trim());};
+  const submitAdd=(e:FormEvent)=>{e.preventDefault(); const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/); if(!m){setStatus({type:'error',msg:'Invalid YouTube link'});return;} const ytId=m[1]; if(videos.some(v=>v.youtubeId===ytId)){setStatus({type:'error',msg:'Duplicate link — already on shelf'});return;} const nv:Video={id:Date.now().toString(),youtubeId:ytId,title:`YouTube - ${ytId}`,thumbnailUrl:`https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,durationSeconds:200,viewCount:1000000,channelTitle:'ARMY Added'}; setVideos([nv,...videos]); setUrl(''); setStatus({type:'success',msg:'Added to your shelf'});};
+  return <AppShell><PageHeader eyebrow="your video shelf" title="Bring a favorite in." body="Search the videos already on your shelf, or paste a YouTube link." /><div className="grid gap-5 lg:grid-cols-[1.35fr_.65fr]"><form onSubmit={submitSearch} className="rounded-3xl border border-border bg-card p-5 scrap-shadow sm:p-7"><div className="mb-5 flex items-center gap-2 text-sm font-bold"><Search className="h-4 w-4 text-primary" /> Search your added videos</div><div className="flex gap-2"><Input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Try Black Swan" className="h-11 rounded-xl bg-background" /><Button type="submit" className="h-11 rounded-xl px-5">Search</Button></div></form><form onSubmit={submitAdd} className="rounded-3xl bg-secondary p-5 sm:p-7"><div className="mb-5 flex items-center gap-2 text-sm font-bold"><Link2 className="h-4 w-4 text-primary" /> Add MVs / videos for all</div><Input value={url} onChange={(e)=>setUrl(e.target.value)} placeholder="youtube.com/watch?v=..." className="h-11 rounded-xl border-primary/15 bg-card" /><Button type="submit" disabled={!url.trim()} className="mt-3 w-full rounded-xl"><Plus className="h-4 w-4" /> Add to my shelf</Button>{status?.type==='error'&&<p className="mt-3 text-xs font-bold text-destructive">{status.msg}</p>}{status?.type==='success'&&<p className="mt-3 flex items-center gap-1 text-xs font-bold text-emerald-600"><Check className="h-3.5 w-3.5" /> {status.msg}</p>}</form></div><div className="mt-10">{submitted?(filtered.length?<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{filtered.map((v)=><MissionCard key={v.id} video={v} openYoutube onPlay={()=>window.open(`https://www.youtube.com/watch?v=${v.youtubeId}`,'_blank')} />)}</div>:<EmptyState title="No page with that title yet" body="Try another search" />):<div className="rounded-3xl border border-dashed border-primary/25 p-10 text-center"><Youtube className="mx-auto h-7 w-7 text-primary" /><p className="mt-3 text-sm text-muted-foreground">Search your shelf whenever a song gets stuck in your head.</p></div>}</div></AppShell>;
+}
+
+function HistoryPage(){
+  const [history,setHistory]=useState<HistoryEntry[]>(MOCK_HISTORY); const [member,setMember]=useState('');
+  const members=useMemo(()=>[...new Set(history.map((e)=>e.member).filter(Boolean))],[history]); const filtered=member?history.filter(h=>h.member===member):history;
+  return <AppShell><PageHeader eyebrow="stream journal" title="The pages you’ve left behind." body="Every completed stream stays here as a small record of showing up." action={<select value={member} onChange={(e)=>setMember(e.target.value)} className="h-10 rounded-xl border border-border bg-card px-3 text-xs font-bold text-foreground"><option value="">All members</option>{members.map((n)=><option key={n} value={n}>{n}</option>)}</select>} /><div className="grid gap-8 lg:grid-cols-[1.1fr_.9fr]"><section>{filtered.length?<div className="space-y-3">{filtered.map((e)=><HistoryCard key={e.id} entry={e} onDelete={()=>{if(window.confirm('Remove this page?')) setHistory(h=>h.filter(x=>x.id!==e.id));}} />)}</div>:<EmptyState title="No streams recorded yet" body="Your journal begins when a video reaches the end in the player." action={<AppLink href="/missions" className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground" testId="link-history-missions">Find a mission</AppLink>} />}</section><Leaderboard entries={MOCK_LEADERBOARD} /></div></AppShell>;
+}
+
+const faqs=[['What counts as a stream?','A stream is recorded when you finish a video in our in-app player.'],['Can I add any YouTube video?','Yes. Paste a public YouTube watch link.'],['Why do missions come from BANGTANTV?','Missions are a welcoming starting point: official moments.'],['How does the leaderboard work?','It reflects recorded streams across members in the light circle.'],['Will my YouTube account be connected?','No. borahae.fm uses the public YouTube player.']];
+
+function SettingsPage(){
+  const [name,setName]=useState('ARMY'); const [avatarUrl,setAvatarUrl]=useState(''); const [open,setOpen]=useState<number|null>(null); const [saved,setSaved]=useState(false);
+  const submit=(e:FormEvent)=>{e.preventDefault(); setSaved(true); setTimeout(()=>setSaved(false),2000);};
+  return <AppShell><PageHeader eyebrow="your details" title="Keep your page yours." body="A few quiet settings for the person behind the streams." /><div className="grid gap-8 lg:grid-cols-[.85fr_1.15fr]"><form onSubmit={submit} className="rounded-3xl border border-border bg-card p-6 scrap-shadow sm:p-8"><div className="mb-7 flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-secondary text-2xl font-extrabold text-primary">{avatarUrl?<img src={avatarUrl} alt="" className="h-full w-full object-cover" />:name?.[0]||'A'}</div><div><p className="font-bold">{name||'ARMY'}</p><p className="text-xs text-muted-foreground">Joined {formatDate(new Date().toISOString())}</p></div></div><label className="mb-4 block text-xs font-bold">Display name<Input value={name} onChange={(e)=>setName(e.target.value)} className="mt-2 h-11 rounded-xl bg-background" /></label><label className="mb-4 block text-xs font-bold">Avatar URL (optional)<Input value={avatarUrl} onChange={(e)=>setAvatarUrl(e.target.value)} className="mt-2 h-11 rounded-xl bg-background" placeholder="https://..." /></label><Button type="submit" disabled={!name.trim()} className="w-full rounded-xl">{saved?'Saved to your scrapbook':'Save profile'}</Button></form><section><div className="mb-5"><p className="font-mono text-[10px] uppercase tracking-[.15em] text-primary">little questions</p><h2 className="mt-1 font-display text-3xl">FAQ, with care.</h2></div><div className="divide-y divide-border rounded-3xl border border-border bg-card px-5">{faqs.map(([q,a],i)=><div key={q}><button onClick={()=>setOpen(open===i?null:i)} className="flex w-full items-center justify-between gap-4 py-5 text-left text-sm font-bold"><span>{q}</span><ChevronDown className={`h-4 w-4 shrink-0 text-primary transition-transform ${open===i?'rotate-180':''}`} /></button><div className={`grid transition-[grid-template-rows] duration-300 ${open===i?'grid-rows-[1fr]':'grid-rows-[0fr]'}`}><p className="overflow-hidden pb-0 text-sm leading-6 text-muted-foreground">{a}</p></div></div>)}</div></section></div></AppShell>;
+}
+
+function Router(){
+  return <Switch>
+    <Route path="/welcome" component={Landing} />
+    <Route path="/sign-in/*?" component={()=><Redirect to="/home" />} />
+    <Route path="/sign-up/*?" component={()=><Redirect to="/home" />} />
+    <Route path="/home" component={DashboardPage} />
+    <Route path="/missions" component={MissionsPage} />
+    <Route path="/videos" component={VideosPage} />
+    <Route path="/history" component={HistoryPage} />
+    <Route path="/settings" component={SettingsPage} />
+    <Route path="/" component={Landing} />
+    <Route component={NotFound} />
+  </Switch>;
+}
+
+function App(){ return <WouterRouter base={basePath}><Router /></WouterRouter>; }
+export default App;
